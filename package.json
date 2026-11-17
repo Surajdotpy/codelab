@@ -1,0 +1,35 @@
+{
+  "name": "codelab",
+  "version": "1.0.0",
+  "description": "Offline coding playground for Python, JavaScript, C and C++",
+  "license": "MIT",
+  "main": "main.js",
+  "scripts": {
+    "start": "node scripts/start.js",
+    "test": "node scripts/test-highlight.js && node scripts/smoke.js",
+    "make-icon": "node scripts/start.js scripts/make-icon.js",
+    "dist": "electron-builder --win nsis",
+    "dist:portable": "electron-builder --win portable"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "school.codelab",
+    "electronLanguages": ["en-US"],
+    "productName": "CodeLab",
+    "files": ["main.js", "preload.js", "runner.js", "index.html", "style.css", "renderer.js", "highlight.js", "build/icon.png"],
+    "extraResources": [{ "from": "runtimes", "to": "runtimes", "filter": ["**/*"] }],
+    "win": { "target": "nsis", "icon": "build/icon.png" },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "runAfterFinish": false,
+      "artifactName": "CodeLab-Setup-${version}.exe"
+    },
+    "portable": { "artifactName": "CodeLab-${version}-portable.exe" }
+  }
+}

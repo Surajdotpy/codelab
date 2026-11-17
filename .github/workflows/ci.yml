@@ -1,0 +1,21 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # --ignore-scripts skips the large Electron download; tests only need Node.
+      - run: npm ci --ignore-scripts
+      - name: Download Python and GCC
+        shell: powershell
+        run: powershell -ExecutionPolicy Bypass -File scripts/fetch-runtimes.ps1
+      - run: npm test

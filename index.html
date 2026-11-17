@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'">
+  <title>CodeLab</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="logo">&lt;/&gt;</span> CodeLab</div>
+    <div class="tabs" id="tabs" role="tablist">
+      <button class="tab" data-lang="python" role="tab">Python</button>
+      <button class="tab" data-lang="javascript" role="tab">JavaScript</button>
+      <button class="tab" data-lang="c" role="tab">C</button>
+      <button class="tab" data-lang="cpp" role="tab">C++</button>
+    </div>
+    <div class="actions">
+      <button class="btn ghost" id="openBtn" title="Open a file (Ctrl+O)">Open</button>
+      <button class="btn ghost" id="saveBtn" title="Save to a file (Ctrl+S)">Save</button>
+      <button class="btn ghost" id="resetBtn" title="Restore starter code">Reset</button>
+      <button class="btn run" id="runBtn" title="Run (Ctrl+Enter)">▶ Run</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="pane editor-pane">
+      <div class="pane-title"><span id="fileName">main.py</span><span class="hint">Ctrl+Enter to run · Ctrl +/− to zoom</span></div>
+      <div class="editor">
+        <pre class="gutter" id="gutter" aria-hidden="true">1</pre>
+        <div class="code-wrap">
+          <pre id="highlight" class="highlight" aria-hidden="true"></pre>
+          <textarea id="code" spellcheck="false" autocomplete="off" autocapitalize="off" wrap="off"></textarea>
+        </div>
+      </div>
+    </section>
+
+    <section class="side">
+      <div class="pane input-pane">
+        <div class="pane-title">Input <span class="hint">typed here is given to your program</span></div>
+        <textarea id="stdin" spellcheck="false" placeholder="e.g. your name, numbers…"></textarea>
+      </div>
+      <div class="pane output-pane">
+        <div class="pane-title">Output <span id="status" class="status"></span>
+          <button class="btn tiny ghost" id="clearBtn">Clear</button></div>
+        <pre id="output" class="output"><span class="muted">Press ▶ Run to see your program's output here.</span></pre>
+      </div>
+    </section>
+  </main>
+
+  <script src="highlight.js"></script>
+  <script src="renderer.js"></script>
+</body>
+</html>

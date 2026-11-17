@@ -1,0 +1,6 @@
+node_modules/
+dist/
+runtimes/
+
+# Private course material (not part of the app)
+codexx_codelab_day1.html
