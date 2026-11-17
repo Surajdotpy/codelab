@@ -1,0 +1,71 @@
+name: Release
+
+# Runs when a version tag such as v1.1.0 is pushed. Builds the Windows installer
+# and attaches it to a new GitHub release. See docs/RELEASING.md.
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write # needed to create the release and upload the installer
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Check the tag matches the version in package.json
+        shell: bash
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          pkg="$(node -p "require('./package.json').version")"
+          if [ "$tag" != "$pkg" ]; then
+            echo "::error::Tag is $GITHUB_REF_NAME but package.json version is $pkg. Fix the version, then re-tag."
+            exit 1
+          fi
+
+      - run: npm ci
+
+      - name: Download Python and GCC
+        shell: powershell
+        run: powershell -ExecutionPolicy Bypass -File scripts/fetch-runtimes.ps1
+
+      - name: Test (must pass before anything is published)
+        run: npm test
+
+      - name: Build installer
+        run: npm run dist -- --publish never
+
+      - name: Write release notes
+        shell: bash
+        run: |
+          cat > release-notes.md <<'EOF'
+          ## Install
+          1. Download **CodeLab-Setup-X.exe** below (under *Assets*).
+          2. Run it. It installs for the current user, so no admin rights are needed.
+          3. Open **CodeLab** from the desktop shortcut.
+
+          Needs 64-bit Windows 10 or 11 and about 500 MB of disk space. Nothing else to install.
+          Windows may warn that the app is unsigned. Click **More info**, then **Run anyway**.
+          Upgrading? Just run the new installer. Your saved code is kept.
+
+          Bundled third-party software and its licenses: see `THIRD-PARTY-NOTICES.md`.
+
+          ## What's changed
+          EOF
+
+      - name: Create GitHub release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/CodeLab-Setup-*.exe \
+            --title "CodeLab $GITHUB_REF_NAME" \
+            --notes-file release-notes.md \
+            --generate-notes
