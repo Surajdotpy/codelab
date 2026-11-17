@@ -1,6 +1,7 @@
 # Prepares runtimes/ so the packaged app works on PCs with nothing installed.
-#   runtimes/python  <- official Python embeddable zip
-#   runtimes/mingw   <- w64devkit (GCC), trimmed to just the C/C++ compiler (~230 MB)
+#   runtimes/python       <- official Python embeddable zip
+#   runtimes/mingw        <- w64devkit (GCC), trimmed to just the C/C++ compiler (~230 MB)
+#   runtimes/limiter.exe  <- built here from scripts/limiter.c (memory / process caps for student programs)
 # Run once on the teacher PC (needs internet):
 #   powershell -ExecutionPolicy Bypass -File scripts\fetch-runtimes.ps1
 param(
@@ -12,6 +13,30 @@ $root = Split-Path -Parent $PSScriptRoot
 $rt = Join-Path $root "runtimes"
 New-Item -ItemType Directory -Force $rt | Out-Null
 
+# SHA-256 of every file we download. A download that doesn't match is rejected, so a tampered
+# or corrupted file never ends up inside the installer. Pinned on 2026-11-17 from the official URLs.
+# Changing a version? Download it, check it against the publisher (python.org signatures, the
+# w64devkit release page), then add its hash here.
+$KnownHashes = @{
+  "python-3.12.8-embed-amd64.zip" = "8D3F33BE9EB810F23C102F08475AF2854E50484B8E4E06275E937BE61CE3D2FB"
+  "w64devkit-x64-2.11.0.7z.exe"   = "54C2BB9962E8A30C8270E34C5EFC3D5FEE579F53087FA7D435B95FBBA2AF7B2B"
+}
+
+function Get-Verified([string]$Url, [string]$OutFile) {
+  $name = Split-Path $Url -Leaf
+  if (-not $KnownHashes.ContainsKey($name)) {
+    throw "No known SHA-256 for $name. Verify the file yourself and add its hash to `$KnownHashes in this script."
+  }
+  Write-Host "Downloading $Url"
+  Invoke-WebRequest -Uri $Url -OutFile $OutFile -UseBasicParsing
+  $actual = (Get-FileHash $OutFile -Algorithm SHA256).Hash
+  if ($actual -ne $KnownHashes[$name]) {
+    Remove-Item $OutFile -Force
+    throw "Checksum mismatch for $name (got $actual). The download was rejected."
+  }
+  Write-Host "  checksum OK"
+}
+
 # --- Python -------------------------------------------------------------
 $py = Join-Path $rt "python"
 if (Test-Path (Join-Path $py "python.exe")) {
@@ -19,8 +44,7 @@ if (Test-Path (Join-Path $py "python.exe")) {
 } else {
   $url = "https://www.python.org/ftp/python/$PythonVersion/python-$PythonVersion-embed-amd64.zip"
   $zip = Join-Path $env:TEMP "codelab-python-embed.zip"
-  Write-Host "Downloading $url"
-  Invoke-WebRequest -Uri $url -OutFile $zip -UseBasicParsing
+  Get-Verified $url $zip
   Expand-Archive -Path $zip -DestinationPath $py -Force
   Remove-Item $zip
   Write-Host "Python ready: $py"
@@ -34,10 +58,9 @@ if (Test-Path (Join-Path $mingw "bin\g++.exe")) {
   $work = Join-Path $env:TEMP "codelab-w64devkit"
   Remove-Item $work -Recurse -Force -ErrorAction SilentlyContinue
   New-Item -ItemType Directory -Force $work | Out-Null
-  $sfx = Join-Path $work "w64devkit.7z.exe"
   $url = "https://github.com/skeeto/w64devkit/releases/download/v$W64Version/w64devkit-x64-$W64Version.7z.exe"
-  Write-Host "Downloading $url (about 65 MB)"
-  Invoke-WebRequest -Uri $url -OutFile $sfx -UseBasicParsing
+  $sfx = Join-Path $work (Split-Path $url -Leaf)
+  Get-Verified $url $sfx
   Write-Host "Extracting..."
   & $sfx "-o$work\x" -y | Out-Null
   $src = Join-Path $work "x\w64devkit"
@@ -69,4 +92,11 @@ if (Test-Path (Join-Path $mingw "bin\g++.exe")) {
   Write-Host "GCC $ver ready: $mingw"
 }
 
-Write-Host "`nNow run:  npm test   (checks all languages)   then   npm run dist"
+# --- limiter.exe (always rebuilt, so it matches scripts/limiter.c) --------
+Write-Host "Building limiter.exe..."
+$env:PATH = "$mingw\bin;$env:PATH"
+& "$mingw\bin\gcc.exe" -O2 -s -municode -Wall -o (Join-Path $rt "limiter.exe") (Join-Path $PSScriptRoot "limiter.c")
+if ($LASTEXITCODE -ne 0) { throw "Building limiter.exe failed" }
+Write-Host "limiter.exe ready"
+
+Write-Host "`nNow run:  npm test   (checks all languages and the safety limits)   then   npm run dist"
