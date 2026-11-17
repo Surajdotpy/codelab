@@ -73,8 +73,9 @@ Each language touches a few small places. Use an existing one (for example `cpp`
 ## Rules for keeping it safe and light
 - **No heavy dependencies.** The installer should stay small and the app should start fast.
 - **Security matters.** Student code is not sandboxed, so don't loosen the limits in
-  `runner.js` (time limit, output cap, no shell) or the Electron settings in `main.js`
-  (`contextIsolation`, no `nodeIntegration`) without discussing it in an issue first.
+  `runner.js` (time limit, output cap, no shell, environment allowlist), the Job Object caps in
+  `scripts/limiter.c`, or the Electron settings in `main.js` (sandbox, navigation lock, IPC sender
+  check) without discussing it in an issue first. See [SECURITY.md](SECURITY.md).
 - Don't commit `runtimes/`, `node_modules/` or `dist/`. They are build outputs.
 - Don't commit personal data, such as real names or email addresses of students.
 

@@ -1,0 +1,14 @@
+# The maintainer is asked to review every pull request. With a branch ruleset that requires
+# code-owner review, changes to these files cannot be merged without that review.
+*                               @Surajdotpy
+
+# Security-critical files (see SECURITY.md and CLAUDE.md)
+/runner.js                      @Surajdotpy
+/main.js                        @Surajdotpy
+/preload.js                     @Surajdotpy
+/index.html                     @Surajdotpy
+/scripts/limiter.c              @Surajdotpy
+/scripts/fetch-runtimes.ps1     @Surajdotpy
+/.github/                       @Surajdotpy
+/package.json                   @Surajdotpy
+/package-lock.json              @Surajdotpy

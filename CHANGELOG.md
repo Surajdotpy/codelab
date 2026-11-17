@@ -18,6 +18,19 @@ pull requests; this file is the human-written summary.
 - Automatic releases: pushing a `v*` tag builds and publishes the installer.
 - Documentation, license (MIT), contributing guide, code of conduct and security policy.
 
+### Security
+- Every program runs inside a Windows Job Object: 256 MB memory cap, at most 16 processes, and
+  everything it started is killed when it ends. Memory bombs and fork bombs no longer freeze the PC.
+- The whole process tree is killed at the time limit; programs only see a short allowlist of
+  environment variables; oversized programs (over 256 KB) and input (over 64 KB) are refused.
+- Window hardening: navigation, redirects and new windows blocked (a dropped file can't replace the
+  app), IPC accepted only from CodeLab's own page, all permissions denied, all renderers sandboxed,
+  DevTools disabled in the installed app, stricter Content-Security-Policy.
+- Electron upgraded from 33 to 45 and electron-builder from 25 to 26 (fixes known vulnerabilities).
+- Downloaded runtimes are verified against pinned SHA-256 checksums; release notes list the
+  installer's SHA-256.
+- Dependabot updates, CODEOWNERS for security-critical files, read-only token for CI.
+
 ### Fixed
 - `npm run make-icon` now regenerates the icon instead of launching the app.
 

@@ -10,7 +10,7 @@ C++** in one lightweight Windows app. No internet, no Docker, nothing else to in
 Get the installer from the **[latest release](https://github.com/Surajdotpy/codelab/releases/latest)**,
 run it, and open **CodeLab** from the desktop shortcut.
 
-- Needs 64-bit **Windows 10 or 11** and about 500 MB of disk space.
+- Needs 64-bit **Windows 10 or 11** and about 600 MB of disk space.
 - Installs for your own account, so no administrator is needed.
 - Windows may warn that the app is unsigned. Click **More info**, then **Run anyway**.
 
@@ -19,7 +19,7 @@ run it, and open **CodeLab** from the desktop shortcut.
 - Syntax colors, line numbers, auto-indent, Tab key, **Ctrl +/−** to zoom
 - Input box for programs that read from the keyboard (`input()`, `scanf`, `cin`)
 - **Open** (Ctrl+O) and **Save** (Ctrl+S) program files; your last code in each language is remembered
-- Each program is stopped after 5 seconds and limited to 64 KB of output
+- Safety limits for every program: 5 seconds, 256 MB of memory, 16 processes, 64 KB of output, so a runaway program can't freeze the PC
 - Works fully offline. Python, the C/C++ compiler and Node.js are bundled inside the app
 
 ## Documentation
@@ -59,6 +59,7 @@ npm run dist     # builds the installer into dist\
 | `preload.js` | The only bridge from the screen to the computer: `codelab.run/save/open()` |
 | `main.js` | Opens the window, receives run, save and open requests |
 | `runner.js` | Saves code to a temp folder, compiles C/C++, runs it with a 5 s limit |
+| `scripts/limiter.c` | Tiny launcher that runs each program inside a Windows Job Object (memory and process caps) |
 
 The app is built with Electron. JavaScript runs on the Node.js engine inside Electron, Python
 is the official embeddable build, and C/C++ use GCC from [w64devkit](https://github.com/skeeto/w64devkit).
@@ -66,9 +67,13 @@ is the official embeddable build, and C/C++ use GCC from [w64devkit](https://git
 
 ## Safety
 
-Each run is limited to 5 seconds and 64 KB of output. Student programs run with the same
-permissions as the signed-in Windows user. **This is not a sandbox**, so use a standard
-(non-administrator) Windows account on lab PCs. Details are in [SECURITY.md](SECURITY.md).
+Every program runs inside a Windows Job Object with a 5 second limit, a 256 MB memory cap and a
+16-process cap, and everything it starts is killed when it stops. The window itself is locked down
+(sandboxed, strict Content-Security-Policy, no navigation, no DevTools in the installed app).
+
+Student programs still run with the signed-in Windows user's permissions and can read or delete
+that user's files. **This is not a sandbox**, so use a standard (non-administrator) Windows account
+on lab PCs. Details are in [SECURITY.md](SECURITY.md).
 
 ## License
 

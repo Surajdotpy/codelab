@@ -14,7 +14,7 @@ internet and nothing else to install.
 
 ## Install
 
-You need a 64-bit **Windows 10 or 11** PC with about 500 MB of free disk space.
+You need a 64-bit **Windows 10 or 11** PC with about 600 MB of free disk space.
 
 1. Go to the [latest release](https://github.com/Surajdotpy/codelab/releases/latest) and
    download **CodeLab-Setup-*.exe** (under *Assets*).
@@ -117,7 +117,12 @@ to keep a program, move it to another PC, or hand it in.
 
 **Limits (on purpose or by design)**
 - A program is **stopped after 5 seconds**. This protects the computer from endless loops.
-- Output is capped at about **64 KB**.
+- A program can use at most **256 MB of memory** and start at most **16 processes**. Beyond that,
+  allocations fail (for example `MemoryError` in Python, or `malloc` returning `NULL` in C) and you'll
+  see *"[Stopped: program used too much memory]"*.
+- Output is capped at about **64 KB**; a program can be at most 256 KB, the Input box at most 64 KB.
+- Programs can't use the clipboard and don't see your computer's environment variables
+  (only a few basic Windows ones).
 - **One file per program.** There are no multi-file projects.
 - Python has the standard library only: **no `pip`, no `tkinter`, no `turtle`**.
   No graphics windows from any language.
@@ -131,6 +136,7 @@ to keep a program, move it to another PC, or hand it in.
 | Windows blocks the installer | Click **More info**, then **Run anyway**. The app is unsigned. |
 | "stopped (too long)" | The program ran for more than 5 seconds, often an endless loop (`while True`, `while(1)`). Check the loop's exit condition. |
 | `EOFError` (Python) or the program ends at `scanf`/`cin` | It asked for input and the Input box was empty. Type the values first. |
+| "used too much memory" or `MemoryError` | The program needed more than 256 MB, often a list or array that keeps growing in a loop. |
 | "Compile error" in C or C++ | Read the first error, since it is usually the real one. The message shows the line number. |
 | "Tool not found" | The app is damaged or incomplete. Reinstall it from the latest release. |
 | Antivirus quarantines a program or the compiler | Some antivirus tools dislike freshly compiled `.exe` files. Ask your IT staff to allow CodeLab and its temp folder. |
@@ -151,10 +157,11 @@ to keep a program, move it to another PC, or hand it in.
   see [RELEASING.md](RELEASING.md) for how new versions are published.
 
 **Student accounts and safety**
-- Student code is **not sandboxed**. It runs with the permissions of the signed-in user.
-  Use a standard (non-administrator) Windows account for students, so a program can only
-  affect that student's own files.
-- Each program is limited to 5 seconds and 64 KB of output.
+- Each program is limited to 5 seconds, 256 MB of memory, 16 processes and 64 KB of output, and
+  everything it starts is killed when it stops. A runaway program can't freeze the PC.
+- Student code is still **not sandboxed**: it runs as the signed-in user and can read or delete that
+  user's files and use the network. Use a standard (non-administrator) Windows account for students,
+  so a program can only affect that student's own files. See [SECURITY.md](../SECURITY.md).
 
 **Where data is stored**
 - Saved editor contents live in `%APPDATA%\codelab` for each Windows user.

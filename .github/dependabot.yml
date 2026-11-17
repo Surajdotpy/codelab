@@ -1,0 +1,17 @@
+# Opens pull requests when Electron, electron-builder or the GitHub Actions we use have updates.
+# Electron updates matter most: Electron is the Chromium + Node runtime that ships inside the app.
+# CI runs on every pull request, so a broken update shows up as a failed check before merging.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    labels: [dependencies]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    labels: [dependencies]

@@ -39,7 +39,8 @@ and:
 2. Installs dependencies and downloads Python and GCC (`scripts/fetch-runtimes.ps1`).
 3. Runs `npm test`. **If any test fails, nothing is published.**
 4. Builds the installer with `npm run dist`.
-5. Creates the GitHub release and uploads the installer.
+5. Creates the GitHub release, uploads the installer, and puts its SHA-256 checksum in the
+   release notes so users can verify their download.
 
 ## If something goes wrong
 

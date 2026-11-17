@@ -28,9 +28,9 @@ const cases = [
 
 // ---- Safety tests: the things a curious or careless student might do -----------------------
 
-// Names of python.exe processes whose command line contains `marker` (our own leftovers).
-function leftoverPythons(marker) {
-  const ps = `(Get-CimInstance Win32_Process | Where-Object { $_.Name -eq 'python.exe' -and $_.CommandLine -like '*${marker}*' } | Measure-Object).Count`;
+// Count of `exe` processes whose command line contains `marker` (our own leftovers).
+function leftovers(exe, marker) {
+  const ps = `(Get-CimInstance Win32_Process | Where-Object { $_.Name -eq '${exe}' -and $_.CommandLine -like '*${marker}*' } | Measure-Object).Count`;
   const r = spawnSync('powershell', ['-NoProfile', '-Command', ps], { encoding: 'utf8' });
   return Number((r.stdout || '').trim());
 }
@@ -89,13 +89,30 @@ const safetyCases = [
     },
   },
   {
-    name: 'fork bomb is capped (and nothing is left running)',
+    // Fast child processes (cmd.exe), so the cap is reached well inside the time limit.
+    name: 'process cap: a program cannot start more than 16 processes',
+    run: async () => {
+      const marker = 'CAPTEST' + process.pid;
+      const code = '#include <stdio.h>\n#include <windows.h>\nint main(void) {\n  int started = 0;\n  for (int i = 0; i < 40; i++) {\n    STARTUPINFOA si = { sizeof si };\n    PROCESS_INFORMATION pi;\n    char cmd[] = "cmd.exe /c ping -n 30 127.0.0.1 >nul & rem ' + marker + '";\n    if (!CreateProcessA(NULL, cmd, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)) {\n      printf("CAPPED at %d\\n", started);\n      return 0;\n    }\n    started++;\n  }\n  printf("STARTED %d\\n", started);\n  return 0;\n}\n';
+      const r = await runner.run({ lang: 'c', code });
+      await sleep(1500);
+      const m = /CAPPED at (\d+)/.exec(r.stdout);
+      const left = leftovers('cmd.exe', marker);
+      const ok = Boolean(m) && Number(m[1]) < 16 && left === 0;
+      if (!ok) console.log('       detail:', JSON.stringify({ stdout: r.stdout, stderr: r.stderr.slice(-300), timedOut: r.timedOut, phase: r.phase, left }));
+      return ok;
+    },
+  },
+  {
+    // On a slow PC the time limit may stop this before the cap does; either way nothing may survive.
+    name: 'python fork bomb is stopped and nothing is left running',
     run: async () => {
       const marker = 'FORKTEST' + process.pid;
       const code = `import subprocess, sys\nkids = []\ntry:\n    for i in range(60):\n        kids.append(subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)  # ${marker}"]))\n    print("STARTED", len(kids))\nexcept Exception as e:\n    print("CAPPED at", len(kids))\n`;
       const r = await runner.run({ lang: 'python', code });
       await sleep(1500);
-      return /CAPPED at \d+/.test(r.stdout) && leftoverPythons(marker) === 0;
+      const stopped = /CAPPED at \d+/.test(r.stdout) || r.timedOut;
+      return stopped && !r.stdout.includes('STARTED') && leftovers('python.exe', marker) === 0;
     },
   },
   {
@@ -104,7 +121,7 @@ const safetyCases = [
       const marker = 'ORPHANTEST' + process.pid;
       const r = await runner.run({ lang: 'python', code: sleeperSrc(marker) + 'while True:\n    pass\n' });
       await sleep(1500);
-      return r.timedOut === true && leftoverPythons(marker) === 0;
+      return r.timedOut === true && leftovers('python.exe', marker) === 0;
     },
   },
   {

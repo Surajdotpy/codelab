@@ -36,12 +36,24 @@ Always finish a change with `npm test`. For UI changes also run the app.
 
 ## Security rules (do not weaken without the maintainer's say-so)
 - `runner.js`: no shell (`spawn` with an argument array), 5 s run limit, 20 s compile limit, 64 KB
-  output cap, fresh temp dir per run, deleted afterwards.
-- `main.js`: `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true`. Every IPC handler
-  validates its input. Open/Save use native dialogs, so the page never supplies a path.
+  output cap, `killTree` (taskkill /T) on timeout, environment allowlist, size limits on code/input,
+  fresh temp dir per run, deleted afterwards. Programs run **through `runtimes/limiter.exe`**.
+- `scripts/limiter.c`: Job Object with 256 MB memory, 16 processes, kill-on-close, no crash dialogs,
+  UI restrictions. It's rebuilt by `fetch-runtimes.ps1`; rebuild by hand after editing it.
+- `main.js`: `contextIsolation`, no `nodeIntegration`, `sandbox` (plus `app.enableSandbox()`), no
+  webview, DevTools off when packaged; navigation/new windows blocked; permissions denied; every IPC
+  handler checks `fromApp(e)` and validates input. Open/Save use native dialogs.
 - `preload.js` exposes only `run`, `save`, `open`. Don't widen it casually.
-- Student code is **not sandboxed**. Never describe CodeLab as sandboxed or secure against malicious
-  code. Docs say to use a standard Windows account.
+- `fetch-runtimes.ps1` pins SHA-256 hashes. A new runtime version needs a verified new hash.
+- Student code is **not sandboxed** (file and network access remain). Never describe CodeLab as
+  sandboxed or secure against malicious code. Docs say to use a standard Windows account.
+
+## Testing safety features without hurting the PC
+- The memory-bomb checks in `scripts/smoke.js` fill memory up to the 256 MB cap. They skip below
+  1.5 GB free RAM. **Check free memory before running them**: on a PC near its commit limit, filling
+  memory has crashed other apps, including the coding agent's own session.
+- Checks that start processes or compile can time out on a starved PC. Re-run when memory is back
+  before treating a failure as a real bug.
 
 ## Repository etiquette
 - **Pushing publishes to a public repo.** Ask before every push. Never force-push.
@@ -50,7 +62,7 @@ Always finish a change with `npm test`. For UI changes also run the app.
   address, and never put personal data in commits, docs or examples.
 - Never commit `runtimes/`, `node_modules/`, `dist/`, or `codexx_codelab_day1.html` (private
   course material, git-ignored).
-- Keep it light: no new dependency unless it clearly earns its weight. The installer is 125 MB.
+- Keep it light: no new dependency unless it clearly earns its weight. The installer is about 160 MB.
 - Match the existing style: small files, plain JS, comments that say *why*.
 
 ## When behavior changes, update

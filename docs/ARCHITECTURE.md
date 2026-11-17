@@ -44,10 +44,16 @@ runs on the PC.
    2. Writes `main.py`, `main.js`, `main.c` or `main.cpp`.
    3. **C and C++:** compiles with `gcc` or `g++` (20 s limit). On failure it returns the
       compiler's messages with `phase: "compile"`.
-   4. Starts the program with `spawn` and an argument array (no shell), writes the Input box text to
-      its stdin, and collects stdout and stderr.
-   5. Stops it after **5 seconds**, or if combined output passes **64 KB**.
-   6. Deletes the temp folder shortly afterwards (a short delay, because Windows may still hold the `.exe`).
+   4. Starts the program **through `limiter.exe`** with `spawn` and an argument array (no shell),
+      passing only an allowlist of environment variables. It writes the Input box text to stdin and
+      collects stdout and stderr.
+   5. `limiter.exe` starts the program suspended, puts it in a Windows Job Object (256 MB memory,
+      16 processes, kill-all on close, no crash dialogs, no clipboard), then lets it run.
+   6. The runner stops it after **5 seconds**, or if combined output passes **64 KB**, using
+      `taskkill /T` so the whole process tree goes.
+   7. Deletes the temp folder shortly afterwards (a short delay, because Windows may still hold the `.exe`).
+
+   Programs over 256 KB or input over 64 KB are refused before anything starts.
 5. The result `{ stdout, stderr, exitCode, timedOut, phase, ms }` returns to the window, which shows
    stdout normally and stderr in red.
 
@@ -61,13 +67,15 @@ runs on the PC.
 | JavaScript | The Electron executable itself, with `ELECTRON_RUN_AS_NODE=1` | Adds nothing to the download |
 | C | `runtimes/mingw/bin/gcc.exe` | Compiled with `-lm`; output is `main.exe` in the temp folder |
 | C++ | `runtimes/mingw/bin/g++.exe` | Output is `main.exe` in the temp folder |
+| (all) | `runtimes/limiter.exe` | Built from `scripts/limiter.c` by `fetch-runtimes.ps1`. If it's missing (a bare dev setup), programs run without the Job Object limits and `scripts/smoke.js` fails |
 
 When the bundled MinGW is present, its `bin` folder is put first on `PATH` for the child process
 so `gcc` can find its helper programs and DLLs.
 
-`runtimes/` is **not in git**. `scripts/fetch-runtimes.ps1` downloads Python and w64devkit and trims
-w64devkit to just the C/C++ compiler (about 233 MB instead of about 717 MB). The installer ships the
-folder as `extraResources`.
+`runtimes/` is **not in git**. `scripts/fetch-runtimes.ps1` downloads Python and w64devkit, rejects
+any download whose SHA-256 doesn't match the pinned value, trims w64devkit to just the C/C++ compiler
+(about 233 MB instead of about 717 MB), and builds `limiter.exe`. The installer ships the folder as
+`extraResources`.
 
 ## Security model
 
@@ -76,17 +84,24 @@ Goal: a classroom of beginners can run programs without hanging or crashing the 
 
 | Protection | Where | Protects against |
 |---|---|---|
-| 5 s run limit, 20 s compile limit, 64 KB output cap | `runner.js` | Endless loops, output floods |
+| 5 s run limit, 20 s compile limit, 64 KB output cap, `taskkill /T` | `runner.js` | Endless loops, output floods, helpers outliving the limit |
+| Job Object: 256 MB memory, 16 processes, kill-all on close, no crash dialogs, no clipboard/system settings | `scripts/limiter.c` | Memory bombs freezing the PC, fork bombs, orphaned processes |
+| Environment allowlist | `runner.js` | Programs reading secrets from the teacher's environment |
+| Size limits on code (256 KB) and input (64 KB) | `runner.js`, `main.js` | Huge payloads |
 | `spawn` with an argument array, never a shell | `runner.js` | Command injection |
 | Fresh temp folder per run, deleted afterwards | `runner.js` | Programs interfering with each other |
-| `contextIsolation`, no `nodeIntegration`, `sandbox: true` | `main.js` | The page getting direct access to Node or the file system |
-| Content-Security-Policy `default-src 'self'` | `index.html` | Injected scripts or remote content |
+| `contextIsolation`, no `nodeIntegration`, `sandbox` (all renderers), no `webview`, no DevTools when packaged | `main.js` | The page getting direct access to Node or the file system |
+| Navigation, redirects and new windows blocked | `main.js` | A dropped file or link replacing CodeLab's page |
+| IPC accepted only from CodeLab's own `index.html` | `main.js` (`fromApp`) | Any other page using the bridge |
+| All permission requests denied | `main.js` | Camera, microphone, notifications, devices |
+| Content-Security-Policy: `'self'` only, no `eval`, no network, no objects or frames | `index.html` | Injected scripts or remote content |
 | Preload exposes only `run`, `save`, `open`; handlers validate input | `preload.js`, `main.js` | Misuse of the bridge |
 | Open/Save use native dialogs; the page never supplies a path | `main.js` | Reading or writing arbitrary paths |
+| Pinned SHA-256 for downloaded runtimes; installer checksum in release notes | `fetch-runtimes.ps1`, `release.yml` | Tampered downloads |
 
-**Not protected:** the student's program itself. It runs with the signed-in user's permissions and can
-touch that user's files. The advice is to use standard (non-administrator) Windows accounts.
-See [SECURITY.md](../SECURITY.md).
+**Not protected:** file and network access by the student's program. It runs with the signed-in
+user's permissions and can touch that user's files. The advice is to use standard
+(non-administrator) Windows accounts. See [SECURITY.md](../SECURITY.md).
 
 ## The editor
 
@@ -112,7 +127,7 @@ inside `%APPDATA%\codelab` for the Windows user.
 ## Packaging and releases
 
 - `npm run dist` runs electron-builder and produces a **per-user NSIS installer**
-  (`CodeLab-Setup-<version>.exe`, about 125 MB, about 491 MB installed). It needs no admin rights and
+  (`CodeLab-Setup-<version>.exe`, about 160 MB, about 570 MB installed). It needs no admin rights and
   adds a desktop shortcut and a Start menu entry.
 - Only the files listed under `build.files` in `package.json` go into the app. If you add a source
   file the app needs, add it there too.
@@ -125,7 +140,7 @@ inside `%APPDATA%\codelab` for the Windows user.
 | Command | What it covers |
 |---|---|
 | `node scripts/test-highlight.js` | The highlighter: no characters lost, tokens, escaping, edge cases |
-| `node scripts/smoke.js` | Real programs through `runner.js` in all four languages: input, errors, compile errors, timeout, output flood, `math.h`, `windows.h`, the C++ STL, C++17 |
+| `node scripts/smoke.js` | Real programs through `runner.js` in all four languages: input, errors, compile errors, timeout, output flood, `math.h`, `windows.h`, the C++ STL, C++17. Plus safety checks: memory bombs in Python, JavaScript and C, the process cap, fork bombs, orphaned children, environment leaks, oversized input, paths with spaces. Memory-bomb checks skip on a PC with under 1.5 GB free (never in CI) |
 
 Both run with `npm test`. The UI itself has no automated tests; changes to it are checked by
 running the app (and, for the editor, by comparing a screenshot's line numbers with the code).

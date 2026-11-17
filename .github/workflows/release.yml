@@ -51,14 +51,26 @@ jobs:
           2. Run it. It installs for the current user, so no admin rights are needed.
           3. Open **CodeLab** from the desktop shortcut.
 
-          Needs 64-bit Windows 10 or 11 and about 500 MB of disk space. Nothing else to install.
+          Needs 64-bit Windows 10 or 11 and about 600 MB of disk space. Nothing else to install.
           Windows may warn that the app is unsigned. Click **More info**, then **Run anyway**.
           Upgrading? Just run the new installer. Your saved code is kept.
 
           Bundled third-party software and its licenses: see `THIRD-PARTY-NOTICES.md`.
-
-          ## What's changed
           EOF
+          # Publish the installer's checksum so anyone can check their download wasn't altered.
+          file="$(ls dist/CodeLab-Setup-*.exe)"
+          hash="$(sha256sum "$file" | cut -d' ' -f1)"
+          {
+            echo ""
+            echo "## Verify your download"
+            echo "SHA-256 of \`$(basename "$file")\`:"
+            echo ""
+            echo "\`$hash\`"
+            echo ""
+            echo "In PowerShell: \`Get-FileHash .\\$(basename "$file")\` must show the same value."
+            echo ""
+            echo "## What's changed"
+          } >> release-notes.md
 
       - name: Create GitHub release
         shell: bash
