@@ -28,7 +28,10 @@ run it, and open **CodeLab** from the desktop shortcut.
 |---|---|
 | [User guide](docs/USER-GUIDE.md) | a student or teacher: installing, running programs, giving input, troubleshooting, setting up many PCs |
 | [Contributing](CONTRIBUTING.md) | a developer who wants to fix a bug, add a feature, or add a language |
+| [Architecture](docs/ARCHITECTURE.md) | curious how it works inside: the run flow, the editor, the security model |
 | [Releasing](docs/RELEASING.md) | a maintainer publishing a new version (it's automatic) |
+| [Progress](PROGRESS.md) and [Changelog](CHANGELOG.md) | checking what's done, what's not verified yet, and what changed in each version |
+| [CLAUDE.md](CLAUDE.md) | using an AI coding assistant on this repo: project rules and gotchas |
 | [Security policy](SECURITY.md) | reporting a vulnerability, or wondering how safe student code is |
 | [Third-party notices](THIRD-PARTY-NOTICES.md) | checking the licenses of the bundled Python, Electron and GCC |
 | [Code of conduct](CODE_OF_CONDUCT.md) | taking part in the project |

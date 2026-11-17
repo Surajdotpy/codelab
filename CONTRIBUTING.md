@@ -43,6 +43,8 @@ npm start       # opens the app
 Small pull requests get reviewed faster.
 
 ## How the code is organised
+For the full picture (run flow, editor design, security model) read [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+If you use an AI coding assistant, point it at [CLAUDE.md](CLAUDE.md). It lists the project's rules and gotchas.
 
 | File | What it does |
 |---|---|

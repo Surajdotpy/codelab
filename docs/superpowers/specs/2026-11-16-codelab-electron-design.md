@@ -1,5 +1,11 @@
 # CodeLab — Offline Coding Playground (Electron) — Design
 
+> **Historical document.** This is the original design from 2026-11-16, kept for context.
+> Some details have changed since (the installer is now a per-user NSIS installer instead of
+> a portable `.exe`, the C/C++ compiler is a trimmed w64devkit, and syntax highlighting,
+> Open/Save and releases were added). For how things work **now**, read
+> [ARCHITECTURE.md](../../ARCHITECTURE.md).
+
 ## Goal
 One lightweight Windows desktop app where Class 6–8 students write and run
 Python, JavaScript, C and C++ offline, on every school desktop.
